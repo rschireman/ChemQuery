@@ -3,24 +3,21 @@
 
 This notebook demonstrates how to run the Retrieval-Augmented Generation (RAG) model using the Gemma-7B-IT model entirely on a local machine equipped with an NVIDIA RTX 3070 GPU. Specifically, we will ask Gemma about the CRYSTAL23 manual (https://www.crystal.unito.it/).
 
-Retrieval-Augmented Generation (RAG) is a powerful approach that combines the strengths of retrieval-based and generation-based models to produce more accurate and contextually relevant responses. Here are some ways RAG can help with specific data:
+The primary goal of Retrieval-Augmented Generation (RAG) is to enhance the output quality of Large Language Models (LLMs).
 
-1. Enhanced Information Retrieval
-RAG can efficiently retrieve relevant information from a large dataset or knowledge base. By incorporating a retrieval mechanism, it ensures that the generated responses are grounded in factual data, improving the accuracy and relevance of the information provided.
+## Key Improvements
+1. Preventing Hallucinations
+LLMs are powerful, but they can sometimes generate information that appears correct but is actually inaccurate — a phenomenon known as hallucination. RAG addresses this by incorporating factual data through a retrieval process, ensuring more accurate outputs. Additionally, if a generated response seems incorrect, the retrieval process provides access to the original sources, enabling verification of the information.
 
-Example: In a medical application, RAG can retrieve the most relevant medical literature and generate detailed explanations or summaries based on the retrieved documents, assisting healthcare professionals in making informed decisions.
+2. Utilizing Custom Data
+Many LLMs are trained on extensive internet-scale text data, giving them excellent language modeling capabilities but often lacking in specific domain knowledge (like computational chemistry). RAG systems enhance LLMs by integrating domain-specific data, such as computational chemistry software documentation, allowing the models to produce tailored outputs for specialized use cases.
 
-2. Contextual Understanding
-RAG excels in understanding and maintaining context over long conversations or documents. By retrieving relevant contextual information, it ensures that the generated content is coherent and contextually appropriate.
+## Why run locally?
 
-Example: In customer support, RAG can retrieve past interactions with a customer and generate responses that take into account the entire conversation history, leading to more personalized and effective support.
+LLMs are incredibly resource-intensive due to their size and complexity (Gemma-7b has 7 _billion_ parameters. They require significant computational power and memory, often necessitating specialized hardware like high-end GPUs. We will use quantization (for a more detailed description, see the notebook) to fit this model into the 8 Gb of VRAM of a relatively old GPU. While running LLMs locally presents various challenges, it also offers substantial benefits:
 
-3. Domain-Specific Knowledge
-RAG can be fine-tuned on domain-specific datasets to provide expertise in specialized fields. By leveraging a retrieval component, it can access and utilize a vast amount of domain-specific knowledge, ensuring that the generated content is both accurate and relevant to the field.
+1. Data Privacy and Security:
+Running LLMs locally ensures that sensitive data remains on-premises, reducing the risk of data breaches and ensuring compliance with privacy regulations.
 
-Example: In legal applications, RAG can retrieve and reference relevant legal documents, case laws, and statutes, enabling lawyers to generate precise legal arguments and documents.
-
-4. Improved Question Answering
-RAG enhances the performance of question-answering systems by retrieving relevant documents or passages that contain the answer to a query. This results in more accurate and detailed answers compared to generation-only models.
-
-Example: In educational platforms, RAG can help students by retrieving relevant textbook sections or academic papers and generating comprehensive answers to their questions.
+2. Cost Efficiency:
+For organizations with high usage requirements, running LLMs locally can be more cost-effective over time compared to the recurring costs of cloud-based services.
