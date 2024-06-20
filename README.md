@@ -14,7 +14,7 @@ Many LLMs are trained on extensive internet-scale text data, giving them excelle
 
 ## Why run locally?
 
-LLMs are incredibly resource-intensive due to their size and complexity (Gemma-7b has 7 _billion_ parameters. They require significant computational power and memory, often necessitating specialized hardware like high-end GPUs. We will use quantization (for a more detailed description, see the notebook) to fit this model into the 8 Gb of VRAM of a relatively old GPU. While running LLMs locally presents various challenges, it also offers substantial benefits:
+LLMs are incredibly resource-intensive due to their size and complexity (Gemma-7b has 7 _billion_ parameters). They require significant computational power and memory, often necessitating specialized hardware like high-end GPUs. We will use quantization (for a more detailed description, see the notebook) to fit this model into the 8 Gb of VRAM of a relatively old GPU. While running LLMs locally presents various challenges, it also offers substantial benefits:
 
 1. Data Privacy and Security:
 Running LLMs locally ensures that sensitive data remains on-premises, reducing the risk of data breaches and ensuring compliance with privacy regulations.
