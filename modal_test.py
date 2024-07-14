@@ -1,8 +1,9 @@
 import modal
 import torch
 import os
-import fitz # (pymupdf, found this is better than pypdf for our use case, note: licence is AGPL-3.0, keep that in mind if you want to use any code commercially)
-from tqdm.auto import tqdm # for progress bars, requires !pip install tqdm
+import fitz
+from tqdm.auto import tqdm 
+
 
 image = (
     modal.Image.from_registry(
@@ -12,6 +13,8 @@ image = (
                                                        "flash-attn",
                                                        "accelerate")
 )
+
+volume = modal.Volume.from_name("chemquery", create_if_missing=True)
 
 app = modal.App(name="ChemQuery",image=image)
 
@@ -26,22 +29,9 @@ def get_gpu_mem():
     return gpu_memory_gb
 
 
-@app.local_entrypoint()
-def main():
-    test_container.remote()
-    print(f"Available GPU memory: {get_gpu_mem.remote()} GB")    
-
-@app.function()
-def text_formatter(text: str) -> str:
-    """Performs minor formatting on text."""
-    cleaned_text = text.replace("\n", " ").strip() # note: this might be different for each doc (best to experiment)
-
-    # Other potential text formatting functions can go here
-    return cleaned_text
-
 # Open PDF and get lines/pages
 # Note: this only focuses on text, rather than images/figures etc
-@app.function()
+@app.function(gpu="any", mounts=[modal.Mount.from_local_dir("./pdf_files/", remote_path="./pdfs")], volumes={"/chemquery": volume})
 def open_and_read_pdf(pdf_path: str) -> list[dict]:
     """
     Opens a PDF file, reads its text content page by page, and collects statistics.
@@ -54,16 +44,29 @@ def open_and_read_pdf(pdf_path: str) -> list[dict]:
         (adjusted), character count, word count, sentence count, token count, and the extracted text
         for each page.
     """
+
+    
+    print(os.listdir("/pdfs"))
+    
     doc = fitz.open(pdf_path)  # open a document
     pages_and_texts = []
     for page_number, page in tqdm(enumerate(doc)):  # iterate the document pages
         text = page.get_text()  # get plain text encoded as UTF-8
-        text = text_formatter(text)
+        cleaned_text = text.replace("\n", " ").strip()
         pages_and_texts.append({"page_number": page_number,  # adjust page numbers since our PDF starts on page 42
-                                "page_char_count": len(text),
-                                "page_word_count": len(text.split(" ")),
-                                "page_sentence_count_raw": len(text.split(". ")),
-                                "page_token_count": len(text) / 4,  # 1 token = ~4 chars, see: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+                                "page_char_count": len(cleaned_text),
+                                "page_word_count": len(cleaned_text.split(" ")),
+                                "page_sentence_count_raw": len(cleaned_text.split(". ")),
+                                "page_token_count": len(cleaned_text) / 4,  # 1 token = ~4 chars, see: https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
                                 "text": text})
     return pages_and_texts
 
+
+
+
+
+@app.local_entrypoint()
+def main():
+    # test_container.remote()
+    # print(f"Available GPU memory: {get_gpu_mem.remote()} GB")    
+    open_and_read_pdf.remote("/pdfs/crystal23.pdf")
