@@ -127,19 +127,24 @@ def split_chunks(pages_and_texts):
 @app.function()
 def pages_and_chunks_to_df(pages_and_chunks, min_token_length):
     df = pd.DataFrame(pages_and_chunks)
+    df.head()
     pages_and_chunks_over_min_token_len = df[df["chunk_token_count"] > min_token_length].to_dict(orient="records")
     return pages_and_chunks_over_min_token_len
 
 
 
-@app.function()
+@app.function(volumes={"/chemquery": volume})
 def create_embeddings(pages_and_chunks_over_min_token_len):
     embedding_model = SentenceTransformer(model_name_or_path="sentence-transformers/all-mpnet-base-v2", device='cuda:0',
                                       trust_remote_code=True) # choose the device to load the model to (note: GPU will often be *much* faster than CPU)
-
     # Create embeddings on the GPU
     for item in tqdm(pages_and_chunks_over_min_token_len):
         item["embedding"] = embedding_model.encode(item["sentence_chunk"])
+
+    # Save embeddings to file
+    text_chunks_and_embeddings_df = pd.DataFrame(pages_and_chunks_over_min_token_len)
+    embeddings_df_save_path = "text_chunks_and_embeddings_df.csv"
+    text_chunks_and_embeddings_df.to_csv(embeddings_df_save_path, index=False)
 
     return pages_and_chunks_over_min_token_len 
 
@@ -151,8 +156,8 @@ def main(num_sentence_chunk_size, min_token_length):
     pages_and_texts = open_and_read_pdf.remote("/pdfs/crystal23.pdf")
     pages_and_texts = split_pdf.remote(pages_and_texts)
     pages_and_texts = split_text_list.remote(pages_and_texts, NUM_SENTENCE_CHUNK_SIZE)
-    pages_and_chunks = split_chunks.remote(pages_and_texts, min_token_length)
-    df = pages_and_chunks_to_df.remote(pages_and_chunks)
+    pages_and_chunks = split_chunks.remote(pages_and_texts)
+    df = pages_and_chunks_to_df.remote(pages_and_chunks, min_token_length)
     embeddings = create_embeddings.remote(df)
 
 
