@@ -143,6 +143,7 @@ def create_embeddings(pages_and_chunks_over_min_token_len):
 
     # Save embeddings to file
     text_chunks_and_embeddings_df = pd.DataFrame(pages_and_chunks_over_min_token_len)
+    print(text_chunks_and_embeddings_df)
     # EMBEDDINGS_DF_SAVE_PATH = "/chemquery/text_chunks_and_embeddings_df.csv"
     # text_chunks_and_embeddings_df.to_csv(EMBEDDINGS_DF_SAVE_PATH, index=False)
     # print(os.listdir("/chemquery"))
@@ -151,7 +152,7 @@ def create_embeddings(pages_and_chunks_over_min_token_len):
     # text_chunks_and_embeddings_df["embedding"] = text_chunks_and_embeddings_df["embedding"].apply(lambda x: np.fromstring(x.strip("[]"), sep=" "))
 
     # Convert embeddings to torch tensor and send to device (note: NumPy arrays are float64, torch tensors are float32 by default)
-    embeddings = torch.tensor(np.array(text_chunks_and_embeddings_df["embedding"].tolist()), dtype=torch.float32).to('cuda')
+    embeddings = torch.tensor(np.array(text_chunks_and_embeddings_df["embedding"].tolist()), dtype=torch.float32).to('cuda:0')
 
     return embeddings
 
