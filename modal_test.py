@@ -9,14 +9,20 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 
-image = (
-    modal.Image.from_registry(
-        "nvidia/cuda:12.2.2-devel-ubuntu22.04", add_python="3.12").apt_install("git", "python3-packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes").pip_install("ase", "tqdm", "huggingface_hub", 
+# image = (
+#     modal.Image.from_registry(
+#         "nvidia/cuda:12.2.2-devel-ubuntu22.04", add_python="3.12").apt_install("git", "python3-packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes").pip_install("ase", "tqdm", "huggingface_hub", 
+#                                                        "pymupdf", "transformers", "spacy",
+#                                                        "sentence_transformers", "llama_index",
+#                                                        "flash-attn",
+#                                                        "accelerate", "torch")
+# )
+
+image = modal.Image.debian_slim(python_version="3.12").apt_install("git", "python3-packaging").pip_install("ase", "tqdm", "huggingface_hub", 
                                                        "pymupdf", "transformers", "spacy",
                                                        "sentence_transformers", "llama_index",
                                                        "flash-attn",
-                                                       "accelerate", "torch")
-)
+                                                       "accelerate", "torch", "packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes")
 
 volume = modal.Volume.from_name("chemquery", create_if_missing=True)
 
