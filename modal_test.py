@@ -106,7 +106,6 @@ def split_text_list(pages_and_texts, num_sentence_chunk_size):
 def split_chunks(pages_and_texts):
     pages_and_chunks = []
     for item in tqdm(pages_and_texts):
-        print(item)
         for sentence_chunk in item["sentence_chunks"]:
             chunk_dict = {}
             chunk_dict["page_number"] = item["page_number"]
