@@ -7,6 +7,7 @@ from spacy.lang.en import English # see https://spacy.io/usage for install instr
 import re
 import pandas as pd
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
 
 # image = (
@@ -132,7 +133,7 @@ def pages_and_chunks_to_df(pages_and_chunks, min_token_length):
 
 
 
-@app.function(gpu="any", volumes={"/chemquery": volume})
+@app.function(gpu="any")
 def create_embeddings(pages_and_chunks_over_min_token_len):
     embedding_model = SentenceTransformer(model_name_or_path="sentence-transformers/all-mpnet-base-v2", device='cuda:0',
                                       trust_remote_code=True) # choose the device to load the model to (note: GPU will often be *much* faster than CPU)
@@ -142,10 +143,27 @@ def create_embeddings(pages_and_chunks_over_min_token_len):
 
     # Save embeddings to file
     text_chunks_and_embeddings_df = pd.DataFrame(pages_and_chunks_over_min_token_len)
-    embeddings_df_save_path = "text_chunks_and_embeddings_df.csv"
-    text_chunks_and_embeddings_df.to_csv(embeddings_df_save_path, index=False)
+    # EMBEDDINGS_DF_SAVE_PATH = "/chemquery/text_chunks_and_embeddings_df.csv"
+    # text_chunks_and_embeddings_df.to_csv(EMBEDDINGS_DF_SAVE_PATH, index=False)
+    # print(os.listdir("/chemquery"))
+    # text_chunks_and_embeddings_df = pd.read_csv("/chemquery/text_chunks_and_embeddings_df.csv")
 
-    return pages_and_chunks_over_min_token_len 
+    # text_chunks_and_embeddings_df["embedding"] = text_chunks_and_embeddings_df["embedding"].apply(lambda x: np.fromstring(x.strip("[]"), sep=" "))
+
+    # Convert embeddings to torch tensor and send to device (note: NumPy arrays are float64, torch tensors are float32 by default)
+    embeddings = torch.tensor(np.array(text_chunks_and_embeddings_df["embedding"].tolist()), dtype=torch.float32).to('cuda')
+
+    return embeddings
+
+
+def get_pages_and_chunks(df):
+    pages_and_chunks = df.to_dict(orient="records")
+    return pages_and_chunks
+
+
+
+
+
 
 
 
