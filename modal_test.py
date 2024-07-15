@@ -18,11 +18,10 @@ from sentence_transformers import SentenceTransformer
 #                                                        "accelerate", "torch")
 # )
 
-image = modal.Image.debian_slim(python_version="3.12").apt_install("git", "python3-packaging").pip_install("ase", "tqdm", "huggingface_hub", 
+image = modal.Image.debian_slim(python_version="3.12").apt_install("git", "python3-packaging").pip_install("bitsandbytes", "ase", "tqdm", "huggingface_hub", 
                                                        "pymupdf", "transformers", "spacy",
                                                        "sentence_transformers", "llama_index",
-                                                       "flash-attn",
-                                                       "accelerate", "torch", "packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes")
+                                                       "accelerate", "torch", "packaging")
 
 volume = modal.Volume.from_name("chemquery", create_if_missing=True)
 
@@ -64,7 +63,6 @@ def split_pdf(pages_and_texts):
     # Add a sentencizer pipeline, see https://spacy.io/api/sentencizer/
     nlp.add_pipe("sentencizer")
     for item in tqdm(pages_and_texts):
-        print(item)
         item["sentences"] = list(nlp(item["text"]).sents)
 
         # Make sure all sentences are strings
@@ -149,7 +147,6 @@ def create_embeddings(pages_and_chunks_over_min_token_len):
 
 @app.local_entrypoint()
 def main(num_sentence_chunk_size, min_token_length):
-
     NUM_SENTENCE_CHUNK_SIZE = int(num_sentence_chunk_size)
     pages_and_texts = open_and_read_pdf.remote("/pdfs/crystal23.pdf")
     pages_and_texts = split_pdf.remote(pages_and_texts)
