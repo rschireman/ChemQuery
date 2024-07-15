@@ -4,15 +4,18 @@ import os
 import fitz
 from tqdm.auto import tqdm 
 from spacy.lang.en import English # see https://spacy.io/usage for install instructions
+import re
+import pandas as pd
+from sentence_transformers import SentenceTransformer
 
 
 image = (
     modal.Image.from_registry(
-        "pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel").apt_install("git").pip_install("ase", "tqdm", "huggingface_hub", 
+        "nvidia/cuda:12.2.2-devel-ubuntu22.04", add_python="3.12").apt_install("git", "python3-packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes").pip_install("ase", "tqdm", "huggingface_hub", 
                                                        "pymupdf", "transformers", "spacy",
                                                        "sentence_transformers", "llama_index",
                                                        "flash-attn",
-                                                       "accelerate")
+                                                       "accelerate", "torch")
 )
 
 volume = modal.Volume.from_name("chemquery", create_if_missing=True)
@@ -85,7 +88,6 @@ def split_list(input_list: list,
 def split_text_list(pages_and_texts, num_sentence_chunk_size):
     # Loop through pages and texts and split sentences into chunks
     for item in tqdm(pages_and_texts):
-        print(item)
         item["sentence_chunks"] = split_list.remote(input_list=item["sentences"],
                                             slice_size=num_sentence_chunk_size)
         item["num_chunks"] = len(item["sentence_chunks"])
@@ -95,13 +97,59 @@ def split_text_list(pages_and_texts, num_sentence_chunk_size):
 
 
 
+# Split each chunk into its own item
+@app.function()
+def split_chunks(pages_and_texts):
+    pages_and_chunks = []
+    for item in tqdm(pages_and_texts):
+        for sentence_chunk in item["sentence_chunks"]:
+            chunk_dict = {}
+            chunk_dict["page_number"] = item["page_number"]
+
+            # Join the sentences together into a paragraph-like structure, aka a chunk (so they are a single string)
+            joined_sentence_chunk = "".join(sentence_chunk).replace("  ", " ").strip()
+            joined_sentence_chunk = re.sub(r'\.([A-Z])', r'. \1', joined_sentence_chunk) # ".A" -> ". A" for any full-stop/capital letter combo
+            chunk_dict["sentence_chunk"] = joined_sentence_chunk
+
+            # Get stats about the chunk
+            chunk_dict["chunk_char_count"] = len(joined_sentence_chunk)
+            chunk_dict["chunk_word_count"] = len([word for word in joined_sentence_chunk.split(" ")])
+            chunk_dict["chunk_token_count"] = len(joined_sentence_chunk) / 4 # 1 token = ~4 characters
+
+            pages_and_chunks.append(chunk_dict)
+    
+    return pages_and_chunks       
+
+@app.function()
+def pages_and_chunks_to_df(pages_and_chunks, min_token_length):
+    df = pd.DataFrame(pages_and_chunks)
+    pages_and_chunks_over_min_token_len = df[df["chunk_token_count"] > min_token_length].to_dict(orient="records")
+    return pages_and_chunks_over_min_token_len
+
+
+
+@app.function()
+def create_embeddings(pages_and_chunks_over_min_token_len):
+    embedding_model = SentenceTransformer(model_name_or_path="sentence-transformers/all-mpnet-base-v2", device='cuda:0',
+                                      trust_remote_code=True) # choose the device to load the model to (note: GPU will often be *much* faster than CPU)
+
+    # Create embeddings on the GPU
+    for item in tqdm(pages_and_chunks_over_min_token_len):
+        item["embedding"] = embedding_model.encode(item["sentence_chunk"])
+
+    return pages_and_chunks_over_min_token_len 
+
 
 
 @app.local_entrypoint()
-def main(num_sentence_chunk_size):
+def main(num_sentence_chunk_size, min_token_length):
 
     NUM_SENTENCE_CHUNK_SIZE = int(num_sentence_chunk_size)
     pages_and_texts = open_and_read_pdf.remote("/pdfs/crystal23.pdf")
     pages_and_texts = split_pdf.remote(pages_and_texts)
     pages_and_texts = split_text_list.remote(pages_and_texts, NUM_SENTENCE_CHUNK_SIZE)
+    pages_and_chunks = split_chunks.remote(pages_and_texts, min_token_length)
+    df = pages_and_chunks_to_df.remote(pages_and_chunks)
+    embeddings = create_embeddings.remote(df)
+
 
