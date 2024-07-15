@@ -106,6 +106,7 @@ def split_text_list(pages_and_texts, num_sentence_chunk_size):
 def split_chunks(pages_and_texts):
     pages_and_chunks = []
     for item in tqdm(pages_and_texts):
+        print(item)
         for sentence_chunk in item["sentence_chunks"]:
             chunk_dict = {}
             chunk_dict["page_number"] = item["page_number"]
@@ -127,13 +128,12 @@ def split_chunks(pages_and_texts):
 @app.function()
 def pages_and_chunks_to_df(pages_and_chunks, min_token_length):
     df = pd.DataFrame(pages_and_chunks)
-    df.head()
-    pages_and_chunks_over_min_token_len = df[df["chunk_token_count"] > min_token_length].to_dict(orient="records")
+    pages_and_chunks_over_min_token_len = df[df["chunk_token_count"] > int(min_token_length)].to_dict(orient="records")
     return pages_and_chunks_over_min_token_len
 
 
 
-@app.function(volumes={"/chemquery": volume})
+@app.function(gpu="any", volumes={"/chemquery": volume})
 def create_embeddings(pages_and_chunks_over_min_token_len):
     embedding_model = SentenceTransformer(model_name_or_path="sentence-transformers/all-mpnet-base-v2", device='cuda:0',
                                       trust_remote_code=True) # choose the device to load the model to (note: GPU will often be *much* faster than CPU)
