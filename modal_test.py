@@ -8,6 +8,7 @@ import re
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 # image = (
@@ -154,8 +155,16 @@ def get_pages_and_chunks(df):
 
 
 
-
-
+@app.function(gpu="A100", secrets=[modal.Secret.from_name("my-huggingface-secret")], timeout=1200)
+def load_model():
+    model_id = "google/gemma-7b-it"
+    tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path=model_id)
+    # Instantiate the model
+    llm_model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path=model_id,
+                                                 torch_dtype=torch.float16, # datatype to use, we want float16
+                                                 low_cpu_mem_usage=False, # use full memory
+                                                 )
+    return llm_model.to("cuda:0")
 
 
 
@@ -168,5 +177,6 @@ def main(num_sentence_chunk_size, min_token_length):
     pages_and_chunks = split_chunks.remote(pages_and_texts)
     df = pages_and_chunks_to_df.remote(pages_and_chunks, min_token_length)
     embeddings = create_embeddings.remote(df)
+    llm = load_model.remote()
 
 
