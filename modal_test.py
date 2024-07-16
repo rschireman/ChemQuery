@@ -152,7 +152,7 @@ def create_embeddings(pages_and_chunks_over_min_token_len):
     # text_chunks_and_embeddings_df["embedding"] = text_chunks_and_embeddings_df["embedding"].apply(lambda x: np.fromstring(x.strip("[]"), sep=" "))
 
     # Convert embeddings to torch tensor and send to device (note: NumPy arrays are float64, torch tensors are float32 by default)
-    embeddings = torch.tensor(np.array(text_chunks_and_embeddings_df["embedding"].tolist()), dtype=torch.float32).to('cuda:0')
+    embeddings = torch.tensor(np.array(text_chunks_and_embeddings_df["embedding"]),dtype=np.float32).to('cuda:0')
 
     return embeddings
 
