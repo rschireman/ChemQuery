@@ -164,9 +164,31 @@ def load_model():
                                                  torch_dtype=torch.float16, # datatype to use, we want float16
                                                  low_cpu_mem_usage=False, # use full memory
                                                  )
-    return llm_model.to("cuda:0")
+    return llm_model.to("cuda:0"), tokenizer
 
+@app.function(gpu='A100')
+def llm_inference(model, tokenizer):
+    input_text = "What is the VCI method"
+    print(f"Input text:\n{input_text}")
 
+    # Create prompt template for instruction-tuned model
+    dialogue_template = [
+        {"role": "user",
+        "content": input_text}
+    ]
+
+#    Apply the chat template
+    prompt = tokenizer.apply_chat_template(conversation=dialogue_template,
+                                       tokenize=False, # keep as raw text (not tokenized)
+                                       add_generation_prompt=True)
+    print(f"\nPrompt (formatted):\n{prompt}") 
+    input_ids = tokenizer(prompt, return_tensors="pt").to("cuda")
+    print(f"Model input (tokenized):\n{input_ids}\n") 
+    outputs = model.generate(**input_ids,
+                             max_new_tokens=512) # define the maximum number of new tokens to create
+    print(f"Model output (tokens):\n{outputs[0]}\n") 
+
+    return outputs
 
 @app.local_entrypoint()
 def main(num_sentence_chunk_size, min_token_length):
@@ -177,6 +199,7 @@ def main(num_sentence_chunk_size, min_token_length):
     pages_and_chunks = split_chunks.remote(pages_and_texts)
     df = pages_and_chunks_to_df.remote(pages_and_chunks, min_token_length)
     embeddings = create_embeddings.remote(df)
-    llm = load_model.remote()
+    llm, tokenizer = load_model.remote()
+    output = llm_inference.remote(model=llm, tokenizer=tokenizer)
 
 
