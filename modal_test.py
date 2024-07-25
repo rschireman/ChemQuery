@@ -11,15 +11,6 @@ import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-# image = (
-#     modal.Image.from_registry(
-#         "nvidia/cuda:12.2.2-devel-ubuntu22.04", add_python="3.12").apt_install("git", "python3-packaging").run_commands("pip install -i https://pypi.org/simple/ bitsandbytes").pip_install("ase", "tqdm", "huggingface_hub", 
-#                                                        "pymupdf", "transformers", "spacy",
-#                                                        "sentence_transformers", "llama_index",
-#                                                        "flash-attn",
-#                                                        "accelerate", "torch")
-# )
-
 image = modal.Image.debian_slim(python_version="3.12").apt_install("git", "python3-packaging").pip_install("bitsandbytes", "ase", "tqdm", "huggingface_hub", 
                                                        "pymupdf", "transformers", "spacy",
                                                        "sentence_transformers", "llama_index",
